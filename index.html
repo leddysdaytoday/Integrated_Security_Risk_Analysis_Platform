@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة تحليل المخاطر الأمنية المتكاملة</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="header">
+      <div class="header-title">
+        <h1>🛡️ منصة تحليل المخاطر الأمنية المتكاملة</h1>
+      </div>
+    </div>
+
+    <div class="navbar" id="mainNavbar">
+      <a onclick="switchView('dashboardView', 'الصفحة الرئيسية')" class="nav-btn active">🏠 الصفحة الرئيسية</a>
+      <a onclick="switchView('accessAnalysisView', 'مركز إدارة الوصول والمصادقة')" class="nav-btn">🔑 الوصول والمصادقة</a>
+      <a onclick="openEmailBoard()" class="nav-btn">📧 البريد الإلكتروني</a>
+      <a onclick="openWebBoard()" class="nav-btn">🌐 نشاط الويب</a>
+      <a onclick="switchView('awarenessCenterView', ' التوعية الأمنية')" class="nav-btn">📚 التوعية الأمنية</a>
+    </div>
+
+    <div class="view" id="dashboardView" style="display:block;">
+      <div class="view-card">
+        <h2>🏠 الصفحة الرئيسية</h2>
+        <p style="color:var(--color-text-secondary);margin-top:10px;">
+          اختر إحدى اللوحات من الشريط العلوي للبدء:
+        </p>
+        <ul style="margin-top:15px;line-height:1.9;">
+          <li>🔑 الوصول والمصادقة</li>
+          <li>📧 البريد الإلكتروني</li>
+          <li>🌐 نشاط الويب</li>
+          <li>📚 التوعية الأمنية</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="view" id="accessAnalysisView" style="display:none;">
+
+      <div class="header sub-header">
+        <div class="header-title">
+          <h2>🔑 مركز إدارة الوصول والمصادقة</h2>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="generateSampleData()">
+            ⚡ توليد بيانات تجريبية
+          </button>
+          <button class="btn btn-warning" onclick="openFilesModal()" id="showFilesBtn" disabled>
+            📁 عرض الملفات
+          </button>
+          <button class="btn btn-success" onclick="exportData()" id="exportBtn" disabled>
+            📥 تصدير التقرير
+          </button>
+        </div>
+      </div>
+
+      <div id="alertSuccess" class="alert alert-success"></div>
+      <div id="alertError" class="alert alert-error"></div>
+
+      <div class="loading" id="loadingIndicator">
+        <h3>⏳ جاري التحليل...</h3>
+        <p>يرجى الانتظار بينما نقوم بمعالجة البيانات</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">👥 إجمالي الموظفين</div>
+          <div class="stat-value" id="totalEmployees">0</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">⚠️ حرج</div>
+          <div class="stat-value critical" id="criticalCount">0</div>
+        </div>
+        <div class="stat-card high">
+          <div class="stat-label">⚠️ عالي</div>
+          <div class="stat-value high" id="highCount">0</div>
+        </div>
+        <div class="stat-card medium">
+          <div class="stat-label">متوسط</div>
+          <div class="stat-value medium" id="mediumCount">0</div>
+        </div>
+        <div class="stat-card low">
+          <div class="stat-label">منخفض</div>
+          <div class="stat-value low" id="lowCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📊 متوسط الدرجة</div>
+          <div class="stat-value" id="avgScore">0</div>
+        </div>
+      </div>
+
+      <div class="charts-grid" id="chartsContainer" style="display:none;">
+        <div class="chart-card">
+          <h3>توزيع مستويات المخاطر</h3>
+          <canvas id="riskPieChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>متوسط المخاطر حسب القسم</h3>
+          <canvas id="deptBarChart"></canvas>
+        </div>
+      </div>
+
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="🔍 البحث بالرقم، الاسم، أو القسم..." oninput="filterEmployees()">
+        </div>
+        <div class="filter-box">
+          <select id="filterSelect" onchange="filterEmployees()">
+            <option value="all">جميع مستويات المخاطر</option>
+            <option value="Critical">حرج</option>
+            <option value="High">عالي</option>
+            <option value="Medium">متوسط</option>
+            <option value="Low">منخفض</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>الموظف</th>
+              <th>القسم</th>
+              <th>درجة المخاطر</th>
+              <th>مستوى المخاطر</th>
+              <th>آخر نشاط</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTableBody">
+            <tr>
+              <td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">
+                لا توجد بيانات. انقر على "توليد بيانات تجريبية" للبدء
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal" id="detailModal" onclick="closeModalOnOutside(event, 'detailModal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 id="modalEmployeeName"></h2>
+            <p style="color:#94a3b8;" id="modalEmployeeInfo"></p>
+          </div>
+          <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+    <div class="modal" id="filesModal" onclick="closeModalOnOutside(event, 'filesModal')">
+      <div class="modal-content" style="max-width:900px;">
+        <div class="modal-header">
+          <div>
+            <h2>📁 الملفات التجريبية المنشأة</h2>
+            <p style="color:#94a3b8;">تم إنشاء الملفات مؤقتاً في الذاكرة. يمكنك تنزيلها أو معاينة أول 20 سطراً.</p>
+          </div>
+          <button class="modal-close" onclick="closeModal('filesModal')">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="fileListContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="previewModal" onclick="closeModalOnOutside(event, 'previewModal')">
+      <div class="modal-content" style="max-width:95%;">
+        <div class="modal-header">
+          <div>
+            <h2 id="previewModalTitle"></h2>
+            <p style="color:#94a3b8;">أول 20 سطراً من الملف</p>
+          </div>
+          <button class="modal-close" onclick="closeModal('previewModal')">×</button>
+        </div>
+        <div class="modal-body">
+          <pre id="previewModalContent" class="pre-preview"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="emailWebAnalysisView" style="display:none;">
+
+      <div class="header sub-header">
+        <div class="header-title">
+          <h2>📧🌐 لوحة تحليلات البريد والمواقع</h2>
+        </div>
+        <div class="header-actions">
+          <button id="btnGenerateMailWeb" class="btn btn-primary"> ⚡ توليد بيانات تجريبية
+          </button>
+          <button id="btnShowFilesMailWeb" class="btn btn-warning" disabled>📁 عرض الملفات</button>
+          <button id="btnExportMailWeb" class="btn btn-success" disabled>📥 تصدير التقرير</button>
+        </div>
+      </div>
+
+      <div id="alertSuccessMailWeb" class="alert alert-success"></div>
+      <div id="alertErrorMailWeb" class="alert alert-error"></div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-target="emailSectionMailWeb">📧 لوحة البريد</button>
+        <button class="tab-btn" data-target="webSectionMailWeb">🌐 لوحة المواقع</button>
+      </div>
+
+      <div class="board-info">
+        <span id="activeBoardLabelMailWeb2">اللوحة الحالية: البريد</span>
+      </div>
+
+      <div class="loading" id="loadingIndicatorMailWeb">
+        <h3>⏳ جاري التحليل...</h3>
+        <p>يرجى الانتظار بينما نقوم بمعالجة البيانات</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">👥 إجمالي الموظفين</div>
+          <div class="stat-value" id="totalEmployeesMailWeb">0</div>
+        </div>
+        <div class="stat-card critical">
+          <div class="stat-label">⚠️ حرج</div>
+          <div class="stat-value critical" id="criticalCountMailWeb">0</div>
+        </div>
+        <div class="stat-card high">
+          <div class="stat-label">⚠️ عالي</div>
+          <div class="stat-value high" id="highCountMailWeb">0</div>
+        </div>
+        <div class="stat-card medium">
+          <div class="stat-label">متوسط</div>
+          <div class="stat-value medium" id="mediumCountMailWeb">0</div>
+        </div>
+        <div class="stat-card low">
+          <div class="stat-label">منخفض</div>
+          <div class="stat-value low" id="lowCountMailWeb">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📊 متوسط الدرجة</div>
+          <div class="stat-value" id="avgScoreMailWeb">0</div>
+        </div>
+      </div>
+
+      <div class="charts-grid" id="chartsContainerMailWeb" style="display:none;">
+        <div class="chart-card">
+          <h3>توزيع مستويات المخاطر</h3>
+          <canvas id="riskPieChartMailWeb"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>متوسط المخاطر حسب القسم</h3>
+          <canvas id="deptBarChartMailWeb"></canvas>
+        </div>
+      </div>
+
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <input type="text" id="searchInputMailWeb" placeholder="🔍 البحث بالرقم، الاسم، أو القسم..." />
+        </div>
+        <div class="filter-box">
+          <select id="filterSelectMailWeb">
+            <option value="all">جميع مستويات المخاطر</option>
+            <option value="Critical">حرج</option>
+            <option value="High">عالي</option>
+            <option value="Medium">متوسط</option>
+            <option value="Low">منخفض</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="emailSectionMailWeb" class="section active">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>القسم</th>
+                <th>درجة المخاطر</th>
+                <th>مستوى المخاطر</th>
+                <th>آخر نشاط</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBodyMailWeb">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">
+                  لا توجد بيانات. انقر على "توليد بيانات تجريبية" للبدء
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="webSectionMailWeb" class="section">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>القسم</th>
+                <th>درجة المخاطر</th>
+                <th>مستوى المخاطر</th>
+                <th>آخر نشاط</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBodyWebMailWeb">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">
+                  لا توجد بيانات. انقر على "توليد بيانات تجريبية" للبدء
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal" id="detailModalMailWeb">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2 id="modalEmployeeNameMailWeb"></h2>
+              <p style="color:#94a3b8;" id="modalEmployeeInfoMailWeb"></p>
+            </div>
+            <button class="modal-close" data-close="detailModalMailWeb">×</button>
+          </div>
+          <div class="modal-body" id="modalBodyMailWeb"></div>
+        </div>
+      </div>
+
+      <div class="modal" id="filesModalMailWeb">
+        <div class="modal-content" style="max-width:900px;">
+          <div class="modal-header">
+            <div>
+              <h2>📁 الملفات المولدة</h2>
+              <p style="color:#94a3b8;">ملفات CSV مؤقتة للمعاينة أو التنزيل.</p>
+            </div>
+            <button class="modal-close" data-close="filesModalMailWeb">×</button>
+          </div>
+          <div class="modal-body">
+            <div id="fileListContainerMailWeb"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal" id="previewModalMailWeb">
+        <div class="modal-content" style="max-width:95%;">
+          <div class="modal-header">
+            <div>
+              <h2 id="previewModalTitleMailWeb"></h2>
+              <p style="color:#94a3b8;">أول 20 سطرًا من الملف</p>
+            </div>
+            <button class="modal-close" data-close="previewModalMailWeb">×</button>
+          </div>
+          <div class="modal-body">
+            <pre id="previewModalContentMailWeb" class="pre-preview"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="awarenessCenterView" style="display:none;">
+      <h2>📚 مركز التوعية الأمنية</h2>
+      <div id="awarenessContent"></div>
+
+      <div id="publishModal" class="modal2">
+        <div class="modal2-content">
+          <span class="close2-button" onclick="closeModal2()">&times;</span>
+          <h3 id="modalTitle">قائمة الموظفين المستهدفين</h3>
+          <p id="modalSubtitle"></p>
+          <div id="modalTargetList"></div>
+          <button onclick="closeModal2(); alert('تم إرسال محتوى التوعية إلى الموظفين المحددين.')" style="margin-top:20px; background-color:#28a745; color:white; padding:10px 20px; border:none; border-radius: 5px; cursor:pointer; font-weight:bold;">
+            إرسال التوعية الآن
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
